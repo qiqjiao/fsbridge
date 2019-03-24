@@ -1,6 +1,5 @@
 #include "log.h"
 
-#include <cassert>
 #include <ctime>
 
 std::mutex log_mutex;

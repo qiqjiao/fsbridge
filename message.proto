@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+package fsbridge;
+
+message BlockProto {
+    optional int64 offset = 1;
+    optional int32 size = 2;
+    // optional string data = 3;
+    optional string path = 4;
+    optional bool is_done = 5;
+
+    optional string wal_path = 6;
+    optional string key = 7;
+    optional int32 wal_offset = 8;
+}

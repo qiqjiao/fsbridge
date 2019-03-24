@@ -1,16 +1,26 @@
-cmake_minimum_required (VERSION 3.0)
+CMAKE_MINIMUM_REQUIRED (VERSION 3.0)
 
-project (fsbridge)
+PROJECT (fsbridge)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(FUSE REQUIRED fuse)
+#SET(CMAKE_CXX_FLAGS "-g -Wall -Werror -std=c++11")
 
-find_package(Threads)
+FIND_PACKAGE(PkgConfig REQUIRED)
+PKG_CHECK_MODULES(FUSE REQUIRED fuse)
 
-file(GLOB SRC "*.cpp")
-add_executable(fsbridge ${SRC})
-target_link_libraries(fsbridge ${FUSE_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-target_include_directories(fsbridge PUBLIC ${FUSE_INCLUDE_DIRS})
-target_compile_options(fsbridge PUBLIC ${FUSE_CFLAGS_OTHER})
+FIND_PACKAGE(Threads)
+
+# apt-get install protobuf-compiler libprotobuf-dev
+INCLUDE(FindProtobuf)
+FIND_PACKAGE(Protobuf REQUIRED)
+INCLUDE_DIRECTORIES(${PROTOBUF_INCLUDE_DIR})
+PROTOBUF_GENERATE_CPP(PROTO_SRC PROTO_HEADER message.proto)
+ADD_LIBRARY(proto ${PROTO_HEADER} ${PROTO_SRC})
+
+FILE(GLOB SRC "*.cpp")
+ADD_EXECUTABLE(fsbridge ${SRC})
+TARGET_LINK_LIBRARIES(fsbridge proto
+                      ${FUSE_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${PROTOBUF_LIBRARY})
+TARGET_INCLUDE_DIRECTORIES(fsbridge PUBLIC ${FUSE_INCLUDE_DIRS})
+TARGET_COMPILE_OPTIONS(fsbridge PUBLIC ${FUSE_CFLAGS_OTHER})
 
 # message(${FUSE_LIBRARIES} ${FUSE_INCLUDE_DIRS} ${FUSE_CFLAGS_OTHER})

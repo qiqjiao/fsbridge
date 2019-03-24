@@ -44,9 +44,9 @@ static int fsbridge_mkdir(const char *path, mode_t mode)
 
     if (mkdir(real_path.c_str(), mode) == -1)
         return -errno;
-    if (chown(real_path.c_str(), fuse_get_context()->uid,
-              fuse_get_context()->gid) == -1)
-        return -errno;
+    // if (chown(real_path.c_str(), fuse_get_context()->uid,
+    //           fuse_get_context()->gid) == -1)
+    //     return -errno;
 
     return 0;
 }
@@ -142,9 +142,9 @@ static int fsbridge_mknod(const char *path, mode_t mode, dev_t rdev)
         res = open(real_path.c_str(), O_CREAT | O_EXCL | O_WRONLY, mode);
         if (res == -1)
             return -errno;
-        if (fchown(res, fuse_get_context()->uid, fuse_get_context()->gid) == -1)
-            LOG() << "Failed to chown for " << path << ","
-                  << fuse_get_context()->uid << "," <<  fuse_get_context()->gid;
+        //if (fchown(res, fuse_get_context()->uid, fuse_get_context()->gid) == -1)
+        //    LOG() << "Failed to chown for " << path << ","
+        //          << fuse_get_context()->uid << "," <<  fuse_get_context()->gid;
         close(res);
         return 0;
     }
@@ -320,6 +320,8 @@ int main(int argc, char *argv[]) {
     }
 
     set_log_file(opts.log_path);
+    LOG() << "===============STARTED===============";
+
     wal = new Wal(opts.work_path, opts.base_path);
 
     struct fuse_operations operations = { 0 };

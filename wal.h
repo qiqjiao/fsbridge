@@ -8,27 +8,13 @@
 #include <unordered_map>
 #include <vector>
 
-struct Block {
-    int64_t offset = 0;
-    int32_t size = 0;
-    int16_t path_len = 0;
-    std::string path;
-    bool is_done = false;
+#include "message.pb.h"
 
-    std::string wal_path;
-    std::string key;
-    int32_t wal_offset = 0;
-
-    std::string data;
-
-    int Read(int fd, int cur_offset);
-    int WriteBuf(int fd, const char *buf);
-    int WriteDone(int fd);
-};
+using fsbridge::BlockProto;
 
 struct WalInfo {
     int fd = 0;
-    std::unordered_map<std::string, std::shared_ptr<Block>> undone_blocks;
+    std::unordered_map<std::string, std::shared_ptr<BlockProto>> undone_blocks;
 };
 
 struct FileInfo {
@@ -36,7 +22,7 @@ struct FileInfo {
     int base_wr_fd = -1;
     bool busy = false;
     std::string path;
-    std::list<std::shared_ptr<Block>> blocks;
+    std::list<std::shared_ptr<BlockProto>> blocks;
 };
 
 // Wal files:
@@ -62,7 +48,7 @@ public:
     void Resume();
 
 private:
-    void ProcessWal(const char *path);
+    void ProcessWal(const std::string &path);
     void Work();
 
     const std::string work_path_;
@@ -76,6 +62,6 @@ private:
     int32_t cur_wal_seq_ = 0;
     int32_t cur_wal_size_ = 0;
     int32_t cur_wal_fd_ = -1;
-    std::vector<Block> cur_wal_blocks_;
+    std::vector<std::shared_ptr<BlockProto>> cur_wal_blocks_;
     time_t last_flush_ = -1;
 };
