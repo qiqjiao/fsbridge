@@ -18,8 +18,10 @@
 
 struct prog_opts {
     char *base_path;
+    int allow_base_read = 0;
     char *work_path;
     char *log_path;
+    int log_level = 0;
 };
 
 Wal *wal;
@@ -40,9 +42,12 @@ static int fsbridge_mkdir(const char *path, mode_t mode)
     prog_opts *opts = (prog_opts*)(fuse_get_context()->private_data);
     std::string real_path = std::string(opts->base_path) + path;
 
-    LOG() << "mkdir " << path;
+    LOG(2) << "mkdir " << path;
 
     if (mkdir(real_path.c_str(), mode) == -1)
+        return -errno;
+
+    if (chmod(real_path.c_str(), 0777) == -1)
         return -errno;
     // if (chown(real_path.c_str(), fuse_get_context()->uid,
     //           fuse_get_context()->gid) == -1)
@@ -143,8 +148,10 @@ static int fsbridge_mknod(const char *path, mode_t mode, dev_t rdev)
         if (res == -1)
             return -errno;
         //if (fchown(res, fuse_get_context()->uid, fuse_get_context()->gid) == -1)
-        //    LOG() << "Failed to chown for " << path << ","
-        //          << fuse_get_context()->uid << "," <<  fuse_get_context()->gid;
+        //    LOG(0) << "Failed to chown for " << path << ","
+        //           << fuse_get_context()->uid << "," <<  fuse_get_context()->gid;
+        if (fchmod(res, 0777) == -1)
+            return -errno;
         close(res);
         return 0;
     }
@@ -203,7 +210,7 @@ static int fsbridge_read(const char *path, char *buf, size_t size, off_t offset,
 static int fsbridge_write(const char *path, const char *buf, size_t size,
              off_t offset, struct fuse_file_info *fi)
 {
-    int fd = fi->fh;
+    // int fd = fi->fh;
     int res;
 
     // res = pwrite(fd, buf, size, offset);
@@ -309,8 +316,10 @@ static int fsbridge_removexattr(const char *path, const char *name)
 int main(int argc, char *argv[]) {
     const fuse_opt fuse_opts[] = {
         {.templ = "--base_path=%s", .offset = offsetof(prog_opts, base_path), .value = 0},
+        {.templ = "--allow_base_read=%d", .offset = offsetof(prog_opts, allow_base_read), .value = 0},
         {.templ = "--work_path=%s", .offset = offsetof(prog_opts, work_path), .value = 0},
         {.templ = "--log_path=%s", .offset = offsetof(prog_opts, log_path), .value = 0},
+        {.templ = "--log_level=%d", .offset = offsetof(prog_opts, log_level), .value = 0},
         FUSE_OPT_END,
     };
     fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -319,10 +328,11 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    set_log_file(opts.log_path);
-    LOG() << "===============STARTED===============";
+    set_log(opts.log_path, opts.log_level);
 
-    wal = new Wal(opts.work_path, opts.base_path);
+    LOG(0) << "===============STARTED===============";
+
+    wal = new Wal(opts.work_path, opts.base_path, opts.allow_base_read);
 
     struct fuse_operations operations = { 0 };
     operations.getattr     = fsbridge_getattr;

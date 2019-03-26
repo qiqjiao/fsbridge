@@ -6,8 +6,9 @@
 
 extern std::mutex log_mutex;
 extern std::ofstream log_fs;
+extern int log_level;
 
-void set_log_file(const char *log_file);
+void set_log(const char *log_file, int log_level);
 const char* timestamp();
 
 class LogWriter {
@@ -17,9 +18,8 @@ public:
         log_mutex_.lock();
     }
     ~LogWriter() {
-        log_fs_ << '\n';
-        log_fs_.flush();
-        if (assert_fail_) assert(0);
+        log_fs_ << std::endl;
+        if (assert_fail_) abort();
         log_mutex_.unlock();
     }
 
@@ -30,7 +30,7 @@ private:
     std::ofstream &log_fs_;
 };
 
-#define LOG() LogWriter(false, log_mutex, log_fs).log_fs() \
+#define LOG(N) if (log_level >= N) LogWriter(false, log_mutex, log_fs).log_fs() \
     << '[' << timestamp() << ' ' << __FILE__ << ':' << __LINE__ << "] "
 #define CHECK(EXPR) if (!(EXPR)) LogWriter(true, log_mutex, log_fs).log_fs() \
     << '[' << timestamp() << ' ' << __FILE__ << ':' << __LINE__ << "] " \
