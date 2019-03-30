@@ -76,7 +76,7 @@ int Wal::Read(const char *path, char *buf, size_t size, off_t offset) {
         }
     }
 
-    lck.unlock();
+    // lck.unlock();
 
     std::sort(segs.begin(), segs.end());
     segs.emplace_back(offset + size, 0);
@@ -87,6 +87,8 @@ int Wal::Read(const char *path, char *buf, size_t size, off_t offset) {
         if (cur_offset < seg.first) {
             if (!read_base)  {
               // Just return whatever in local wall files.
+              LOG(0) << "Skip reading base file. " << offset << ","
+                     << size << "," << (cur_offset - offset);
               return cur_offset - offset;
             }
 
@@ -151,7 +153,7 @@ int Wal::Write(const char *path, const char *buf, size_t size, off_t offset) {
 
     CHECK(fsync(wal_info->fd) != -1) << strerror(errno);
 
-    if (wal_info->blocks.size() >= 1024) {
+    if (wal_info->blocks.size() >= 4096) {
         LOG(0) << "Closing wal: " << wal_seq;
         last_flush_ = std::time(nullptr);
         cur_wal_seq_++;
@@ -340,7 +342,7 @@ void Wal::GC() {
     std::unique_lock<std::mutex> lck(mu_);
 
     // Clean old wal files.
-    while (wal_infos_.size() > 64) {
+    while (wal_infos_.size() > 32) {
         auto wal_itr = wal_infos_.begin();
 
         if (!wal_itr->second.all_flushed) break;
