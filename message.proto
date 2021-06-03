@@ -1,17 +1,95 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package fsbridge;
 
-message BlockProto {
-    enum State { kInWal = 0; kFlushed = 1; kDisposable = 2; }
-
-    optional int64 offset = 1;
-    optional int32 size = 2;
-    optional string path = 4;
-    optional State state = 5 [default = kInWal];
-
-    optional string key = 7;
-
-    optional int32 wal_seq = 6;
-    optional int32 wal_offset = 8;
+message Timespec {
+    required int64 tv_sec = 1;
+    required int64 tv_nsec = 2;
 }
+
+message FileStat {
+    optional int64 st_dev = 1;
+    optional int64 st_ino = 2;
+    optional int64 st_mode = 3;
+    optional int64 st_nlink = 4;
+    optional int64 st_uid = 5;
+    optional int64 st_gid = 6;
+    optional int64 st_dev = 7;
+    optional int64 st_rdev = 8;
+    optional int64 st_size = 9;
+    optional int64 st_blksize = 10;
+    optional int64 st_blocks = 11;
+    optional Timespec st_atim = 12;
+    optional Timespec st_mtim = 13;
+    optional Timespec st_ctim = 14;
+}
+
+message DirEntry {
+    required bytes name = 1;
+    required int64 type = 2;
+}
+
+enum CommandType {
+    CMD_UNSPECIFIED = 0;
+    CMD_GETATTR = 1;
+    CMD_MKDIR = 2;
+    CMD_RMDIR = 3;
+    CMD_READDIR = 4;
+    CMD_UNLINK = 5;
+    CMD_RENAME = 6;
+    CMD_TRUNCATE = 7;
+    CMD_MKNOD = 8;
+    CMD_OPEN = 9;
+    CMD_READ = 10;
+    CMD_WRITE = 11;
+    CMD_RELEASE = 12;
+    CMD_FSYNC = 13;
+    CMD_CHMOD = 14;
+    CMD_CHOWN = 15;
+    CMD_SETXATTR = 16;
+    CMD_GETXATTR = 17;
+    CMD_LISTXATTR = 18;
+    CMD_REMOVEXATTR = 19;
+}
+
+message Command {
+    required CommandType type = 1;
+    required int64 seq = 2;
+    required bytes path = 3;
+    // mkdir, mknode, chmod
+    optional int64 mode = 4;
+    // rename
+    optional bytes to_path = 5;
+    // truncate, read, write
+    optional int64 size = 6;
+    // mknode
+    optional int64 rdev = 7;
+    // open
+    optional int64 flags = 8;
+    // read, write
+    optional bytes buf = 9;
+    optional int64 offset = 10;
+    // chown
+    optional int64 uid = 11;
+    optional int64 gid = 12;
+    // setxattr, getxattr, removexattr
+    optional bytes attr_name = 13;
+    optional bytes attr_value = 14;
+    optional int64 attr_flags = 15;
+}
+
+message CommandResult {
+    required CommandType type = 1;
+    required int64 seq = 2;
+    required int64 err_no = 3;
+    optional bytes err_msg = 4;
+    // getattr
+    optional FileStat stat = 5;
+    // readdir
+    repeated DirEntry dir_entries = 6;
+    // read
+    optional bytes buf = 7;
+    // listxattr
+    optional bytes attr_list = 8;
+}
+
